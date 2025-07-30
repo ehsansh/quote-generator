@@ -1,0 +1,70 @@
+# .gitlab-ci.yml - Stages Example
+
+# Stages define the order in which jobs run. Jobs in the same stage run in parallel.
+# The pipeline runs all jobs in 'prepare', then all in 'build', then 'test', then 'deploy'.
+stages:
+  - prepare
+  - build
+  - test
+  - deploy
+
+# Jobs are assigned to stages. Jobs in the same stage run at the same time.
+# Stages run sequentially: all jobs in one stage must finish before the next stage starts.
+
+say_hello:
+  stage: prepare  # This job runs in the 'prepare' stage
+  image: alpine
+  script:
+    - echo "About to build React app!"
+    - echo 'Commit:' "$CI_COMMIT_SHORT_SHA"
+
+hello:
+  stage: prepare  # Also in 'prepare' stage, runs in parallel with say_hello
+  image: alpine
+  script:
+    - echo "Starting pipeline for commit $CI_COMMIT_SHORT_SHA"
+
+lint_check:
+  stage: prepare
+  image: node:20 # Use a node image as linting requires node/npm
+  cache:
+    paths:
+      - node_modules/ # Cache node_modules to speed up subsequent runs
+  script:
+    - npm ci # Install dependencies
+    - npm run lint # Run your linting script
+  allow_failure: false # The pipeline should fail if linting issues are found
+
+docker_test:
+  stage: test  # This job runs in the 'test' stage
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker --version
+    - echo "Docker is working!"
+  
+test_app:
+  stage: test
+  image: node:20
+  cache:
+    paths:
+      - node_modules/
+  script:
+    - npm ci
+    - npm test
+
+build_and_push_image:
+  stage: deploy  # This job runs in the 'deploy' stage (last)
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+# Purpose of stages:
+# - Stages define the sequence of the pipeline (e.g., build, test, deploy)
+# - Jobs are the individual tasks that run in each stage
+# - All jobs in a stage run in parallel; the next stage starts only when all jobs in the current stage finish

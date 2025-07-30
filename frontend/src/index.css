@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+body,
+html {
+    padding: 0;
+    margin: 0;
+}

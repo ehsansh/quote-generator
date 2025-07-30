@@ -1,0 +1,33 @@
+# Node.js
+node_modules/
+*.log
+.pnpm-store/
+.npm/
+
+# macOS
+.DS_Store
+
+# React build output
+frontend/dist/
+frontend/build/ # If you used create-react-app at some point
+.env.local
+.env.*.local
+
+# Docker
+*.env
+*.pem
+
+# Backend specific
+backend/node_modules/
+backend/dist/ # If your backend has a build step (e.g., TypeScript compilation)
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.bak
+*.swo
+
+# Jest cache
+frontend/.jest_cache/
+backend/.jest_cache/

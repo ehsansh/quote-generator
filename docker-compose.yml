@@ -1,0 +1,37 @@
+# docker-compose.yml - At the root of your quote-generator project
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend  # Specify the context (where Dockerfile is located)
+      dockerfile: Dockerfile # Dockerfile name (relative to context)
+    ports:
+      - "80:80"
+    volumes:
+      # Mount frontend source code for development
+      - ./frontend:/app
+      # Anonymous volume to ensure container's node_modules is used
+      - /app/node_modules
+    depends_on:
+      - backend # Frontend depends on backend being up
+    environment:
+      # Example: Pass backend URL to frontend during development
+      # This assumes your React app can read from process.env.REACT_APP_BACKEND_URL
+      # You'll need to configure your vite.config.ts or similar to expose this.
+      # For now, it's just illustrative.
+      REACT_APP_BACKEND_URL: "http://backend:3001/api/quote" # 'backend' is the service name
+
+  backend:
+    build:
+      context: ./backend   # Specify the context for the backend Dockerfile
+      dockerfile: Dockerfile # Dockerfile name (relative to context)
+    ports:
+      - "3001:3001" # Expose backend port
+    volumes:
+      # Mount backend source code for development
+      - ./backend:/app
+      # Anonymous volume for backend node_modules
+      - /app/node_modules
+    environment:
+      NODE_ENV: development # Or production, depending on your needs
