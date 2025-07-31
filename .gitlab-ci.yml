@@ -122,7 +122,9 @@ integration_test:
   script:
     - echo "--- Running Integration Tests ---"
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker-compose up -d --force-recreate --pull=always frontend backend
+    # Pull the latest images before bringing up the services
+    - docker-compose pull frontend backend
+    - docker-compose up -d --force-recreate frontend backend
     - docker-compose ps
     - sleep 15
     - echo 'Running a simple integration test:' "Fetching from frontend through Nginx to backend"
