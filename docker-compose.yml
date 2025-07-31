@@ -20,7 +20,7 @@ services:
       # This assumes your React app can read from process.env.REACT_APP_BACKEND_URL
       # You'll need to configure your vite.config.ts or similar to expose this.
       # For now, it's just illustrative.
-      REACT_APP_BACKEND_URL: "http://backend:3001/api/quote" # 'backend' is the service name
+      VITE_BACKEND_URL: "/api/quote"
 
   backend:
     build:

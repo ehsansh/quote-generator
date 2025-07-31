@@ -22,7 +22,8 @@ function App() {
         setError(null);
         try {
             // Fetch from backend endpoint /api/quote
-            const response = await fetch("/api/quote");
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || "/api/quote";
+            const response = await fetch(backendUrl);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -56,10 +57,10 @@ function App() {
                     )}
                     {!error && quote && (
                         <>
-                            <p className="text-xl italic mb-4 text-slate-100">
+                            <p className="text-xl italic mb-4 text-slate-100 normal-case">
                                 &quot;{quote.quote}&quot;
                             </p>
-                            <p className="text-lg font-semibold text-slate-300">
+                            <p className="text-lg font-semibold text-slate-300 normal-case">
                                 - {quote.author}
                             </p>
                         </>

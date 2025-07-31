@@ -29,6 +29,9 @@ FROM nginx:stable-alpine
 # to the Nginx default configuration directory inside the container.
 COPY nginx/nginx.conf /etc/nginx/conf.d/nginx.conf
 
+# Remove the default Nginx configuration to avoid conflicts
+RUN rm -f /etc/nginx/conf.d/default.conf
+
 # Copy the built React app (from the 'build' stage) into Nginx's default
 # web root directory.
 COPY --from=build /app/dist /usr/share/nginx/html

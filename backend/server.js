@@ -35,6 +35,6 @@ app.get('/', (req, res) => {
     res.send('Node.js Backend is running and serving quotes!');
 });
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
     console.log(`Backend server listening on port ${port}`);
 });
