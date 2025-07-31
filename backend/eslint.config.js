@@ -20,7 +20,7 @@ module.exports = [
             },
         },
         rules: {
-            'no-console': 'warn', // Example: warn about console.log
+            'no-console': ['warn', { allow: ['error'] }], // Allow console.error as warn, but warn on others
         },
     },
 
