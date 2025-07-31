@@ -176,12 +176,12 @@ integration_test:
 # --------------------------------------------------------------------------------------------------
 deploy_app:
   stage: deploy
-  image: alpine/git:latest
+  image: alpine 
   script:
     - echo "--- Deploying application to production/staging ---"
     - echo 'Frontend image:' "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
     - echo 'Backend image:' "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
-    - echo "Deployment commands would go here."
+    - echo "Deployment commands would go here. (e.g., kubectl apply, ansible-playbook, serverless deploy)"
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   needs: ["integration_test"]
