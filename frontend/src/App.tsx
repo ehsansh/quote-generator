@@ -24,6 +24,7 @@ function App() {
             // Fetch from backend endpoint /api/quote
             const backendUrl = import.meta.env.VITE_BACKEND_URL || '/api/quote';
             const response = await fetch(backendUrl);
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

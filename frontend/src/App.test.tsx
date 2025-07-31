@@ -3,6 +3,17 @@ import userEvent from '@testing-library/user-event';
 import App from './App';
 import '@testing-library/jest-dom';
 
+// Mock import.meta.env for Vite environment variables
+beforeAll(() => {
+  (globalThis as any).import = {
+    meta: {
+      env: {
+        VITE_BACKEND_URL: '/api/quote'
+      }
+    }
+  };
+});
+
 // Helper function for mock fetch responses
 const createMockResponse = <T,>(data: T) =>
     Promise.resolve({
@@ -11,7 +22,7 @@ const createMockResponse = <T,>(data: T) =>
     } as Response);
 
 beforeEach(() => {
-    global.fetch = jest.fn(() =>
+    (globalThis as any).fetch = jest.fn(() =>
         createMockResponse({
             id: 1,
             quote: 'Test quote',
@@ -47,7 +58,7 @@ describe('App', () => {
         await screen.findByText(/test quote/i);
 
         // Mock second response
-        global.fetch = jest.fn(() =>
+        (globalThis as any).fetch = jest.fn(() =>
             createMockResponse({
                 id: 2,
                 quote: 'Another quote',
