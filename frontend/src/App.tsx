@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Loader2Icon } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Loader2Icon } from 'lucide-react';
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from '@/components/ui/card';
 
 // Update the Quote interface to match DummyJSON API
 interface Quote {
@@ -22,7 +22,7 @@ function App() {
         setError(null);
         try {
             // Fetch from backend endpoint /api/quote
-            const backendUrl = import.meta.env.VITE_BACKEND_URL || "/api/quote";
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || '/api/quote';
             const response = await fetch(backendUrl);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -87,7 +87,7 @@ function App() {
                                     Loading...
                                 </>
                             ) : (
-                                "Get New Quote"
+                                'Get New Quote'
                             )}
                         </Button>
                     </div>

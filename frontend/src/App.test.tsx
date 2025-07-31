@@ -1,7 +1,7 @@
-import { render, act, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import App from "./App";
-import "@testing-library/jest-dom";
+import { render, act, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import App from './App';
+import '@testing-library/jest-dom';
 
 // Helper function for mock fetch responses
 const createMockResponse = <T,>(data: T) =>
@@ -14,8 +14,8 @@ beforeEach(() => {
     global.fetch = jest.fn(() =>
         createMockResponse({
             id: 1,
-            quote: "Test quote",
-            author: "Test Author",
+            quote: 'Test quote',
+            author: 'Test Author',
         })
     );
 });
@@ -24,13 +24,13 @@ afterEach(() => {
     jest.restoreAllMocks();
 });
 
-describe("App", () => {
-    it("renders loading state initially", () => {
+describe('App', () => {
+    it('renders loading state initially', () => {
         render(<App />);
         expect(screen.getByText(/loading/i)).toBeInTheDocument();
     });
 
-    it("renders a quote after loading", async () => {
+    it('renders a quote after loading', async () => {
         await act(async () => {
             render(<App />);
         });
@@ -39,7 +39,7 @@ describe("App", () => {
         expect(screen.getByText(/test author/i)).toBeInTheDocument();
     });
 
-    it("fetches a new quote when button is clicked", async () => {
+    it('fetches a new quote when button is clicked', async () => {
         // Initial render
         await act(async () => {
             render(<App />);
@@ -50,15 +50,13 @@ describe("App", () => {
         global.fetch = jest.fn(() =>
             createMockResponse({
                 id: 2,
-                quote: "Another quote",
-                author: "Another Author",
+                quote: 'Another quote',
+                author: 'Another Author',
             })
         );
 
         await act(async () => {
-            await userEvent.click(
-                screen.getByRole("button", { name: /get new quote/i })
-            );
+            await userEvent.click(screen.getByRole('button', { name: /get new quote/i }));
         });
 
         // Verify new quote appears
