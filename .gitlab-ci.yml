@@ -12,9 +12,9 @@ stages:
 say_hello:
   stage: prepare
   image: alpine
-  script:
-    - echo "Starting CI/CD Pipeline for Quote Generator ($CI_COMMIT_SHORT_SHA)"
-    - echo "Running on branch: $CI_COMMIT_BRANCH"
+  script: |
+    echo "Starting CI/CD Pipeline for Quote Generator ($CI_COMMIT_SHORT_SHA)"
+    echo "Running on branch: $CI_COMMIT_BRANCH"
 
 lint_check_frontend:
   stage: prepare
@@ -25,25 +25,24 @@ lint_check_frontend:
       - frontend/node_modules/
   script:
     - echo "--- Running Frontend Lint Check ---"
-    - cd frontend # <--- This ensures the .eslintrc.cjs in frontend/ is picked up
+    - cd frontend
     - npm ci
     - npm run lint
   allow_failure: false
 
 lint_check_backend:
   stage: prepare
-  image: node:20 # Use a node image for backend linting
+  image: node:20
   cache:
-    key: "$CI_COMMIT_REF_SLUG-backend-node-modules" # Unique cache key per branch for backend
+    key: "$CI_COMMIT_REF_SLUG-backend-node-modules"
     paths:
       - backend/node_modules/
   script:
     - echo "--- Running Backend Lint Check ---"
     - cd backend
-    - npm ci # Install dependencies
-    - npm run lint # This will now execute the 'eslint .' command you added
+    - npm ci
+    - npm run lint
   allow_failure: false
-
 
 # --------------------------------------------------------------------------------------------------
 # 2. Build Images Stage: Build Docker images for both services and push to registry
@@ -53,19 +52,17 @@ build_backend_image:
   stage: build_images
   image: docker:latest
   services:
-    - docker:dind # Required for Docker-in-Docker functionality
+    - docker:dind
   script:
     - echo "--- Building and Pushing Backend Docker Image ---"
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    # Build from the backend context, tag with registry and commit SHA
     - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA ./backend
     - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
-    # Also tag with 'latest' for easier reference if on the default branch
     - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE/backend:latest
     - docker push $CI_REGISTRY_IMAGE/backend:latest
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # Only run on the default branch (e.g., 'main' or 'master')
-  needs: ["lint_check_backend"] # Only build if backend linting passes
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  needs: ["lint_check_backend"]
 
 build_frontend_image:
   stage: build_images
@@ -75,21 +72,18 @@ build_frontend_image:
   script:
     - echo "--- Building and Pushing Frontend Docker Image ---"
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    # Build from the frontend context, tag with registry and commit SHA
     - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA ./frontend
     - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA
-    # Also tag with 'latest' for easier reference if on the default branch
     - docker tag $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE/frontend:latest
     - docker push $CI_REGISTRY_IMAGE/frontend:latest
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  needs: ["lint_check_frontend"] # Only build if frontend linting passes
-
+  needs: ["lint_check_frontend"]
 
 # --------------------------------------------------------------------------------------------------
 # 3. Test Stage: Unit and Integration tests for both services
 # --------------------------------------------------------------------------------------------------
-test_frontend_unit: # Frontend unit/component tests
+test_frontend_unit:
   stage: test
   image: node:20
   cache:
@@ -100,10 +94,10 @@ test_frontend_unit: # Frontend unit/component tests
     - echo "--- Running Frontend Unit Tests ---"
     - cd frontend
     - npm ci
-    - npm test # Assumes a 'test' script in frontend/package.json
-  needs: ["lint_check_frontend"] # Only test if linting passes
+    - npm test
+  needs: ["lint_check_frontend"]
 
-test_backend_unit: # Backend unit tests
+test_backend_unit:
   stage: test
   image: node:20
   cache:
@@ -114,51 +108,45 @@ test_backend_unit: # Backend unit tests
     - echo "--- Running Backend Unit Tests ---"
     - cd backend
     - npm ci
-    - npm test # Assumes a 'test' script in backend/package.json (which you just added!)
-  needs: ["lint_check_backend"] # Only test if linting passes
+    - npm test
+  needs: ["lint_check_backend"]
 
 integration_test:
   stage: test
-  image: docker/compose:latest # Use a Docker Compose image for this job
+  image: docker/compose:latest
   services:
-    - docker:dind # Required for Docker-in-Docker
+    - docker:dind
   variables:
-    DOCKER_HOST: tcp://docker:2375 # Standard DIND variable
-    DOCKER_TLS_CERTDIR: ""        # Standard DIND variable
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   script:
     - echo "--- Running Integration Tests ---"
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY # Login to pull images
-    # Bring up the services using your docker-compose.yml
-    # --pull=always ensures it pulls the latest images from registry
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker-compose up -d --force-recreate --pull=always frontend backend
-    - docker-compose ps # Show running services
-    - sleep 15 # Give services time to fully start up (adjust as needed, 10-15s is usually safe)
-    - echo "Running a simple integration test: Fetching from frontend through Nginx to backend"
-    - apk add --no-cache curl # Install curl in the docker-compose image if not present
-    # Access frontend via its service name and port within the Docker network
-    - curl --fail --silent http://frontend:80/api/quote | grep "quote" # This curl will go Nginx -> Backend
+    - docker-compose ps
+    - sleep 15
+    - echo 'Running a simple integration test:' "Fetching from frontend through Nginx to backend"
+    - apk add --no-cache curl
+    - curl --fail --silent http://frontend:80/api/quote | grep "quote"
     - echo "Integration test passed!"
   needs:
-    - build_backend_image # Ensure backend image is built
-    - build_frontend_image # Ensure frontend image is built
+    - build_backend_image
+    - build_frontend_image
   after_script:
     - echo "--- Cleaning up containers after Integration Test ---"
-    - docker-compose down # Clean up containers after tests
-
+    - docker-compose down
 
 # --------------------------------------------------------------------------------------------------
 # 4. Deploy Stage: Simple placeholder for deployment
 # --------------------------------------------------------------------------------------------------
 deploy_app:
   stage: deploy
-  image: alpine/git:latest # Or a more robust image with kubectl, helm, etc.
+  image: alpine/git:latest
   script:
     - echo "--- Deploying application to production/staging ---"
-    - echo "Frontend image: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
-    - echo "Backend image: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
-    # In a real scenario, this is where you'd have commands to deploy your Docker images
-    # to your production environment (e.g., Kubernetes, AWS ECS, Google Cloud Run, etc.)
+    - echo 'Frontend image:' "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
+    - echo 'Backend image:' "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
     - echo "Deployment commands would go here."
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # Only deploy on push to the default branch
-  needs: ["integration_test"] # Only deploy if integration tests pass
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  needs: ["integration_test"]
