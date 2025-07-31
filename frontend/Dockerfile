@@ -1,3 +1,5 @@
+# frontend/Dockerfile
+
 # --- Stage 1: Build the React application ---
 # Use a Node.js image to build the React app. We choose a slim Alpine version for smaller size.
 FROM node:20-alpine AS build
@@ -24,6 +26,11 @@ RUN npm run build
 # --- Stage 2: Serve the application with a lightweight web server (Nginx) ---
 # Use a lightweight Nginx image for serving static files.
 FROM nginx:stable-alpine
+
+# --- IMPORTANT CHANGE: Install curl for integration testing ---
+# Alpine images are minimal and don't include curl by default.
+# We need it for our `docker-compose exec` command in the GitLab CI integration test.
+RUN apk add --no-cache curl
 
 # Copy the custom Nginx configuration from your local 'nginx' folder
 # to the Nginx default configuration directory inside the container.

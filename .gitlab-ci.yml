@@ -122,25 +122,44 @@ integration_test:
   script:
     - echo "--- Running Integration Tests ---"
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    # Pull the images that were pushed in the build_images stage
     - docker-compose pull frontend backend
-    # Bring up the services using the pulled images, without attempting to build them
     - docker-compose up -d --force-recreate --no-build frontend backend
     - docker-compose ps
-    # Give services more time to start up. 20-30 seconds is often safer.
-    - sleep 25 # Increased sleep time
+    - sleep 25 # Give services a bit more time to start up
+
     - echo 'Running a simple integration test:' "Fetching from frontend through Nginx to backend"
-    - apk add --no-cache curl
-    # Use a retry loop for curl to wait for the service to be truly ready
+    # The crucial change: Use docker-compose exec to run curl inside the frontend container
     - |
       for i in $(seq 1 10); do
-        echo "Attempt $i: Curling http://frontend:80/api/quote"
-        curl_output=$(curl --fail --silent http://frontend:80/api/quote)
+        echo "Attempt $i: Curling http://frontend:80/api/quote from within frontend container"
+        # The `frontend` service name is resolved by Docker's internal DNS
+        # within the docker-compose network.
+        # Ensure curl is available in your frontend image if you exec into it.
+        # (It should be, as it's an Nginx Alpine image, you might need to add it to the Dockerfile if not)
+        # However, for this specific test, we're curling the Nginx running *on* the frontend container,
+        # and it routes to the backend. So, we curl localhost:80 from within frontend.
+        # OR, we curl http://frontend:80 from the host, but ensure the host running curl
+        # (the docker/compose image) is on the same network.
+        # Let's try curling localhost:80 from inside the frontend container first.
+
+        # Option A: Exec into the frontend container and curl localhost
+        # This is more reliable as it guarantees being on the correct network.
+        curl_output=$(docker-compose exec -T frontend curl --fail --silent http://localhost:80/api/quote)
+
+        # Option B: (Less likely to work if fundamental network issue)
+        # Connect the runner's container to the Docker Compose network
+        # docker network connect quote-generator-full-stack_default $(hostname) # Might need to get container ID for $(hostname)
+        # And then run curl from the runner as you were:
+        # curl_output=$(curl --fail --silent http://frontend:80/api/quote)
+
+        # Sticking with Option A for now as it's the most robust for this scenario
         if echo "$curl_output" | grep -q "quote"; then
           echo "Integration test passed!"
+          echo "Received response:"
           echo "$curl_output"
           exit 0
         fi
+        echo "Response was: $curl_output" # Debug output
         sleep 5 # Wait 5 seconds before retrying
       done
       echo "Integration test failed: Did not receive a quote from the frontend."
