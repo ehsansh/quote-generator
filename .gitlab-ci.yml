@@ -122,15 +122,29 @@ integration_test:
   script:
     - echo "--- Running Integration Tests ---"
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    # Pull the latest images before bringing up the services
+    # Pull the images that were pushed in the build_images stage
     - docker-compose pull frontend backend
-    - docker-compose up -d --force-recreate frontend backend
+    # Bring up the services using the pulled images, without attempting to build them
+    - docker-compose up -d --force-recreate --no-build frontend backend
     - docker-compose ps
-    - sleep 15
+    # Give services more time to start up. 20-30 seconds is often safer.
+    - sleep 25 # Increased sleep time
     - echo 'Running a simple integration test:' "Fetching from frontend through Nginx to backend"
     - apk add --no-cache curl
-    - curl --fail --silent http://frontend:80/api/quote | grep "quote"
-    - echo "Integration test passed!"
+    # Use a retry loop for curl to wait for the service to be truly ready
+    - |
+      for i in $(seq 1 10); do
+        echo "Attempt $i: Curling http://frontend:80/api/quote"
+        curl_output=$(curl --fail --silent http://frontend:80/api/quote)
+        if echo "$curl_output" | grep -q "quote"; then
+          echo "Integration test passed!"
+          echo "$curl_output"
+          exit 0
+        fi
+        sleep 5 # Wait 5 seconds before retrying
+      done
+      echo "Integration test failed: Did not receive a quote from the frontend."
+      exit 1 # Exit with error if loop completes without success
   needs:
     - build_backend_image
     - build_frontend_image
