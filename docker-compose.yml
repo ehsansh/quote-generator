@@ -3,35 +3,75 @@ version: '3.8'
 
 services:
   frontend:
+    # ----------------------------------------------------------------------
+    # CI/CD: This image will be used when you don't use 'docker-compose up --build'
+    # It will pull the image from your GitLab Container Registry
+    # This is crucial for your integration_test job in GitLab CI
+    # ----------------------------------------------------------------------
+    image: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA
+    # If you prefer to test with the 'latest' tag, you can use:
+    # image: $CI_REGISTRY_IMAGE/frontend:latest
+
+    # ----------------------------------------------------------------------
+    # Local Development: This 'build' section is used when you run
+    # 'docker-compose up --build' or 'docker-compose build' locally.
+    # It builds the image from your Dockerfile.
+    # ----------------------------------------------------------------------
     build:
-      context: ./frontend  # Specify the context (where Dockerfile is located)
-      dockerfile: Dockerfile # Dockerfile name (relative to context)
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "80:80"
-    volumes:
-      # Mount frontend source code for development
-      - ./frontend:/app
-      # Anonymous volume to ensure container's node_modules is used
-      - /app/node_modules
+    # ----------------------------------------------------------------------
+    # Local Development: Volume mounts for hot-reloading/easy development.
+    # IMPORTANT: Comment these out or remove them for CI/production deployments
+    # if you are testing the built images, as they override the image content.
+    # For CI, the image should already contain the built app.
+    # I'm commenting them out here, assuming CI should test the built image.
+    # For local dev, you can uncomment them or use a separate docker-compose.dev.yml
+    # ----------------------------------------------------------------------
+    # volumes:
+    #   - ./frontend:/app
+    #   - /app/node_modules # Anonymous volume to preserve node_modules in container
+
     depends_on:
       - backend # Frontend depends on backend being up
+
     environment:
-      # Example: Pass backend URL to frontend during development
-      # This assumes your React app can read from process.env.REACT_APP_BACKEND_URL
-      # You'll need to configure your vite.config.ts or similar to expose this.
-      # For now, it's just illustrative.
+      # Pass backend URL to frontend (used by Vite)
+      # This correctly aligns with your Nginx proxy setup in the frontend Dockerfile
       VITE_BACKEND_URL: "/api/quote"
 
   backend:
+    # ----------------------------------------------------------------------
+    # CI/CD: This image will be used when you don't use 'docker-compose up --build'
+    # It will pull the image from your GitLab Container Registry
+    # This is crucial for your integration_test job in GitLab CI
+    # ----------------------------------------------------------------------
+    image: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
+    # If you prefer to test with the 'latest' tag, you can use:
+    # image: $CI_REGISTRY_IMAGE/backend:latest
+
+    # ----------------------------------------------------------------------
+    # Local Development: This 'build' section is used when you run
+    # 'docker-compose up --build' or 'docker-compose build' locally.
+    # It builds the image from your Dockerfile.
+    # ----------------------------------------------------------------------
     build:
-      context: ./backend   # Specify the context for the backend Dockerfile
-      dockerfile: Dockerfile # Dockerfile name (relative to context)
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "3001:3001" # Expose backend port
-    volumes:
-      # Mount backend source code for development
-      - ./backend:/app
-      # Anonymous volume for backend node_modules
-      - /app/node_modules
+
+    # ----------------------------------------------------------------------
+    # Local Development: Volume mounts for hot-reloading/easy development.
+    # IMPORTANT: Comment these out or remove them for CI/production deployments
+    # if you are testing the built images, as they override the image content.
+    # I'm commenting them out here for CI.
+    # ----------------------------------------------------------------------
+    # volumes:
+    #   - ./backend:/app
+    #   - /app/node_modules
+
     environment:
-      NODE_ENV: development # Or production, depending on your needs
+      NODE_ENV: production # Consider 'production' for CI/integration tests
