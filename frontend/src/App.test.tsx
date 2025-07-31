@@ -1,17 +1,17 @@
-import { render, act, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 import '@testing-library/jest-dom';
 
 // Mock import.meta.env for Vite environment variables
 beforeAll(() => {
-  (globalThis as any).import = {
-    meta: {
-      env: {
-        VITE_BACKEND_URL: '/api/quote'
-      }
-    }
-  };
+    (globalThis as any).import = {
+        meta: {
+            env: {
+                VITE_BACKEND_URL: '/api/quote',
+            },
+        },
+    };
 });
 
 // Helper function for mock fetch responses
@@ -35,6 +35,21 @@ afterEach(() => {
     jest.restoreAllMocks();
 });
 
+beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation((msg) => {
+        if (typeof msg === 'string' && msg.includes('not wrapped in act')) {
+            return;
+        }
+        // @ts-ignore
+        console._errorOriginal?.apply(console, arguments) || console.error(msg);
+    });
+});
+
+afterAll(() => {
+    // @ts-ignore
+    if (console._errorOriginal) console.error = console._errorOriginal;
+});
+
 describe('App', () => {
     it('renders loading state initially', () => {
         render(<App />);
@@ -42,20 +57,18 @@ describe('App', () => {
     });
 
     it('renders a quote after loading', async () => {
-        await act(async () => {
-            render(<App />);
+        render(<App />);
+        await waitFor(() => {
+            expect(screen.getByText(/test quote/i)).toBeInTheDocument();
+            expect(screen.getByText(/test author/i)).toBeInTheDocument();
         });
-
-        expect(screen.getByText(/test quote/i)).toBeInTheDocument();
-        expect(screen.getByText(/test author/i)).toBeInTheDocument();
     });
 
     it('fetches a new quote when button is clicked', async () => {
-        // Initial render
-        await act(async () => {
-            render(<App />);
+        render(<App />);
+        await waitFor(() => {
+            expect(screen.getByText(/test quote/i)).toBeInTheDocument();
         });
-        await screen.findByText(/test quote/i);
 
         // Mock second response
         (globalThis as any).fetch = jest.fn(() =>
@@ -66,12 +79,11 @@ describe('App', () => {
             })
         );
 
-        await act(async () => {
-            await userEvent.click(screen.getByRole('button', { name: /get new quote/i }));
-        });
+        await userEvent.click(screen.getByRole('button', { name: /get new quote/i }));
 
-        // Verify new quote appears
-        expect(await screen.findByText(/another quote/i)).toBeInTheDocument();
-        expect(screen.getByText(/another author/i)).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText(/another quote/i)).toBeInTheDocument();
+            expect(screen.getByText(/another author/i)).toBeInTheDocument();
+        });
     });
 });
