@@ -1,15 +1,10 @@
 // frontend/src/setupTests.ts
-import '@testing-library/jest-dom'; // Keep this line for the runtime application of matchers
 
-// Declare the global 'fetch' for TypeScript
+import '@testing-library/jest-dom'; // Keep this for runtime application of matchers
+
+// Augment the Window interface to allow global.fetch to be a Jest mock
 declare global {
-  var fetch: jest.Mock;
+  interface Window {
+    fetch: jest.Mock; // Tell TypeScript that window.fetch (and thus global.fetch in JSDOM) can be a Jest mock
+  }
 }
-
-// Mock import.meta.env for Jest
-Object.defineProperty(global.import.meta, 'env', {
-  value: {
-    VITE_BACKEND_URL: '/api/quote',
-  },
-  writable: true,
-});

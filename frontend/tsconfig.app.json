@@ -1,3 +1,4 @@
+// frontend/tsconfig.app.json
 {
     "compilerOptions": {
         "baseUrl": ".",
@@ -23,7 +24,12 @@
         "noUnusedParameters": true,
         "erasableSyntaxOnly": true,
         "noFallthroughCasesInSwitch": true,
-        "noUncheckedSideEffectImports": true
+        "noUncheckedSideEffectImports": true,
+        "isolatedModules": true,
+        // --- RE-ADD THESE CRITICAL LINES ---
+        "esModuleInterop": true, // Crucial for module interoperability (as ts-jest warned)
+        "types": ["jest", "@testing-library/jest-dom"] // For global Jest and testing-library matchers
+        // --- END RE-ADD ---
     },
     "include": ["src"]
 }
