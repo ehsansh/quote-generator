@@ -33,7 +33,7 @@ I created this project to learn and demonstrate:
 ## Repository Links
 - [Frontend-only version (GitLab)](https://gitlab.com/shanshadmehri/quote-generator)
 - This repository: Full stack version with GitHub Actions and Docker
-- [Full stack version with GitLab CI/CD](https://gitlab.com/shanshadmehri/quote-generator-fullstack) 
+- [Full stack version with GitLab CI/CD](https://gitlab.com/shanshadmehri/quote-generator-full-stack) 
 
 ## How to Run Locally
 1. Clone the repository.
