@@ -14,6 +14,7 @@ jobs:
         run: |
           echo "Starting CI/CD Pipeline for Quote Generator"
           echo "Running on branch: ${{ github.ref_name }}"
+
   lint-frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -39,8 +40,10 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm run lint
+
   test-frontend:
     runs-on: ubuntu-latest
+    needs: [lint-frontend]
     defaults:
       run:
         working-directory: frontend
@@ -54,6 +57,7 @@ jobs:
 
   test-backend:
     runs-on: ubuntu-latest
+    needs: [lint-backend]
     defaults:
       run:
         working-directory: backend
@@ -64,14 +68,38 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm test
-  integration-test:
+
+  build-frontend-image:
     runs-on: ubuntu-latest
-    needs: [test-frontend, test-backend]
+    needs: [lint-frontend]
     steps:
       - uses: actions/checkout@v4
+      - name: Build frontend Docker image
+        run: docker build -t quote-generator-frontend ./frontend
+
+  build-backend-image:
+    runs-on: ubuntu-latest
+    needs: [lint-backend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend Docker image
+        run: docker build -t quote-generator-backend ./backend
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: [build-frontend-image, build-backend-image]
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Run Docker Compose
+
+      - name: Install Docker Compose CLI (v2)
+        run: |
+          sudo curl -L https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+
+      - name: Run Integration Test
         run: |
           docker-compose -f docker-compose.yml up -d --build
           sleep 25
@@ -87,5 +115,7 @@ jobs:
           done
           echo "Integration test failed!"
           exit 1
-      - name: Tear down containers
+
+      - name: Tear down
+        if: always()
         run: docker-compose down
