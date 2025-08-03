@@ -1,0 +1,91 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  say-hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say Hello
+        run: |
+          echo "Starting CI/CD Pipeline for Quote Generator"
+          echo "Running on branch: ${{ github.ref_name }}"
+  lint-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run lint
+
+  lint-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run lint
+  test-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+
+  test-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: [test-frontend, test-backend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Run Docker Compose
+        run: |
+          docker-compose -f docker-compose.yml up -d --build
+          sleep 25
+          for i in $(seq 1 10); do
+            echo "Attempt $i: Curling http://localhost/api/quote"
+            output=$(curl --fail --silent http://localhost/api/quote || true)
+            if echo "$output" | grep -q "quote"; then
+              echo "Integration test passed!"
+              echo "$output"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Integration test failed!"
+          exit 1
+      - name: Tear down containers
+        run: docker-compose down
